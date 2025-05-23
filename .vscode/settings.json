@@ -3,6 +3,12 @@
         "thread.h": "c",
         "interrupt.h": "c",
         "typeinfo": "c",
-        "atomic": "c"
+        "atomic": "c",
+        "array": "c",
+        "string_view": "c",
+        "initializer_list": "c",
+        "utility": "c",
+        "mmu.h": "c",
+        "stddef.h": "c"
     }
 }

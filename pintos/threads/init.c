@@ -67,6 +67,7 @@ int main (void) NO_RETURN;
 /* Pintos main program. */
 int
 main (void) {
+	printf("main 진입");
 	uint64_t mem_end;
 	char **argv;
 

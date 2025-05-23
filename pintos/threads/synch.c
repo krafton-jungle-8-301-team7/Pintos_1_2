@@ -350,7 +350,7 @@ cond_wait (struct condition *cond, struct lock *lock) {
    // enum intr_level old_level = intr_disable();
 	list_insert_ordered (&cond->waiters, &waiter.elem,cond_sema_priority_cmp,NULL);
    // intr_set_level (old_level);
-	lock_release (lock);
+	lock_release (lock); // 락을 갖고있는건 비효율적, 어차피 wait을 하면서 블락될것이므로 락(리소스)을 풀어두는게 나음.
 	sema_down (&waiter.semaphore);
 	lock_acquire (lock);
 }
