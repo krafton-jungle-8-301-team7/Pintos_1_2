@@ -78,6 +78,9 @@ syscall_handler (struct intr_frame *f UNUSED) {
 		     check_user_address((void *)arg0);
 			 f->R.rax = syscall_open((const char *)arg0);
 			 break;
+		case SYS_CLOSE:
+		     f->R.rax = syscall_close((int)arg0);
+			 break;
 	
 	}
 	// printf ("system call!\n");
@@ -138,8 +141,30 @@ int syscall_open(const char *file) {
 			return fd;
 		}
 	}
-
 	// 빈 fd 없음 -> 파일 닫고 실패
 	file_close(f);
 	return -1;
+}
+
+int syscall_close(int fd) {
+	struct thread *cur = thread_current();
+
+	// fd 범위가 유효한지 확인
+	// (0,1은 stdin/stdout이고, 범위도 벗어나면 안 됨)
+	if (fd < 2 || fd >= FD_LIMIT)
+	    return -1;
+
+	struct file *file_to_close = cur->fd_table[fd];
+
+	// 이미 닫힌 파일이거나 잘못된 포인터면 실패
+	if (file_to_close == NULL || !is_kernel_vaddr(file_to_close))
+	    return -1;
+
+	// 열려 있던 파일 닫기
+	file_close(file_to_close);
+
+	// fd_table에서 숙청
+	cur->fd_table[fd] = NULL;
+
+	return 0;  // 성공~!
 }
