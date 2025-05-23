@@ -28,7 +28,7 @@ typedef int tid_t;
 #define PRI_MIN 0                       /* Lowest priority. */
 #define PRI_DEFAULT 31                  /* Default priority. */
 #define PRI_MAX 63                      /* Highest priority. */
-#define FD_LIMIT 63
+#define FD_LIMIT 128
 /* A kernel thread or user process.
  *
  * Each thread structure is stored in its own 4 kB page.  The
@@ -108,6 +108,7 @@ struct thread {
 	struct semaphore wait_sema; 
 	struct list child_list; // 자식 리스트
 	struct list_elem child_elem; //자식 리스트 원소
+	bool fork_success; // 자식 프로세스가 fork 성공했는지 여부
 	struct file *fd_table[FD_LIMIT];  //fdt
 
 #ifdef USERPROG

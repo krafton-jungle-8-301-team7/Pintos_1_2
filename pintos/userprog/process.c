@@ -27,6 +27,7 @@ static bool load (const char *file_name, struct intr_frame *if_);
 static void initd (void *f_name);
 static void __do_fork (void *);
 void argument_passing(char**argv,int argc,struct intr_frame *if_);
+struct thread* get_child_process(tid_t pid);
 /* General process initializer for initd and other process. */
 static void
 process_init (void) {
@@ -94,7 +95,7 @@ process_fork (const char *name, struct intr_frame *if_ UNUSED) {
 	struct thread *parent = thread_current(); // 지금 스레드는 부모
 	parent->user_if = *if_; // 스레드 구조체에 버퍼용 인터럽트프레임 생성후 저장
 
-	sema_init(&parent->fork_sema, 0); // 부모의 세마 초기화
+	
     parent->fork_success = false; // fork 성공여부 -> 처음엔 실패로 해놔야됨. 할때마다 초반에 초기화.
 
 
@@ -212,7 +213,7 @@ __do_fork (void *aux) {
 	if (succ)
 		do_iret (&if_);//유저 모드 진입
 error:
-	exit(current->exit_status); //  현재 프로세스(자식)의 종료상태 설정.
+	thread_exit(); //  현재 프로세스(자식)의 종료상태 설정.
 }
 
 /* Switch the current execution context to the f_name.
@@ -284,7 +285,7 @@ process_wait (tid_t child_tid UNUSED) {
 	list_remove(&child_thread->child_elem);
 	int status = child_thread->exit_status;
 	sema_up(&child_thread->exit_sema); 
-	
+	return status;
 }
 
 /* Exit the process. This function is called by thread_exit (). */

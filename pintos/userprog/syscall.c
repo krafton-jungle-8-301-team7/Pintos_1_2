@@ -52,27 +52,41 @@ syscall_handler (struct intr_frame *f UNUSED) {
 	uint64_t arg5 = f->R.r9;
 	switch (syscall_num) {
 		case SYS_EXIT:
-		syscall_exit((int) arg0);
-		break;
+		     syscall_exit((int) arg0);
+		     break;
 		case SYS_WRITE:
-		f->R.rax = syscall_write((int) arg0,(void *) arg1, (unsigned) arg2);
-		break;
+		     f->R.rax = syscall_write((int) arg0,(void *) arg1, (unsigned) arg2);
+		     break;
 		case SYS_HALT:
-		power_off();
-		break;
+		     power_off();
+		     break;
 		case SYS_FORK:
-		f->R.rax = process_fork((const char *)arg0,f);
-		break;
+		     f->R.rax = process_fork((const char *)arg0,f);
+		     break;
 		case SYS_WAIT:
-		f->R.rax = syscall_wait((tid_t) arg0);
-		break;
+		     f->R.rax = syscall_wait((tid_t) arg0);
+		     break;
+		case SYS_EXEC:
+             check_user_address(arg0);
+             f->R.rax = process_exec(arg0);
+             break;
+		case SYS_CREATE:
+		     check_user_address((void *)arg0);    // 파일 이름 포인터 검증
+		     f->R.rax = syscall_create((const char *)arg0, (unsigned)arg1);
+		     break;
+		case SYS_OPEN:
+		     check_user_address((void *)arg0);
+			 f->R.rax = syscall_open((const char *)arg0);
+			 break;
+	
 	}
 	// printf ("system call!\n");
 	// thread_exit ();
 }
 void check_user_address(const void *uaddr) {//user memory access
     if (uaddr == NULL || !is_user_vaddr(uaddr) || pml4_get_page(thread_current()->pml4, uaddr) == NULL) // NULL 넘겼는지 || 유저영역인지 || 일부만 유효? 시작 끝이 페이지 테이블에 매핑 되어있는지 
-        exit(-1); // 잘못된 주소면 프로세스 종료
+        // thread_exit(); // 잘못된 주소면 커널 스레드 종료
+		syscall_exit(-1); // 
 }
 
 int syscall_exit(int status){
@@ -99,3 +113,33 @@ int syscall_wait(tid_t pid){
  //자식이 exit시에 넘긴 status 읽음.
 }
 
+int syscall_create(const char *file, unsigned initial_size) {
+	if (file == NULL) return false;     // NULL 포인터는 무시
+	check_user_address((void *)file);   // 포인터 유효성 검사
+
+	return filesys_create(file, initial_size);  // 파일 만들어 줘
+}
+
+int syscall_open(const char *file) {
+	struct thread *cur = thread_current();
+
+	// 포인터가 NULL이거나 잘못된 주소면 즉시 종료
+	if (file == NULL || !is_user_vaddr(file) || pml4_get_page(cur->pml4, file) == NULL)
+	    syscall_exit(-1);
+
+	// 파일 열기
+	struct file *f = filesys_open(file);
+	if (f == NULL)
+	    return -1;
+    // 빈 fd 번호 찾기 (0,1은 stdin, stdout이므로 건너뛰기)
+	for (int fd = 2; fd < FD_LIMIT; fd++) {
+		if (cur->fd_table[fd] == NULL) {
+			cur->fd_table[fd] = f;
+			return fd;
+		}
+	}
+
+	// 빈 fd 없음 -> 파일 닫고 실패
+	file_close(f);
+	return -1;
+}
