@@ -296,7 +296,10 @@ process_exit (void) {
 	 * TODO: Implement process termination message (see
 	 * TODO: project2/process_termination.html).
 	 * TODO: We recommend you to implement process resource cleanup here. */
-	printf("%s: exit(%d)\n", curr->name, curr->exit_status);
+	if (curr->pml4 != NULL) {
+    // 유저 프로세스 (페이지 테이블이 설정된 경우)
+    printf("%s: exit(%d)\n", curr->name, curr->exit_status);
+}  // to pass alarm & priority tests
 	process_cleanup ();
 	sema_up(&curr->wait_sema);//부모가 wait 풀고 리스트에서 지우도록 up
 	sema_down(&curr->exit_sema);//부모가 할거 다하면 down

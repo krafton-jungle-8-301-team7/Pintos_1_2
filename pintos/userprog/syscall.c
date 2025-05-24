@@ -1,3 +1,4 @@
+#include <string.h>
 #include "userprog/syscall.h"
 #include <stdio.h>
 #include <syscall-nr.h>
@@ -8,6 +9,13 @@
 #include "threads/flags.h"
 #include "intrinsic.h"
 #include "filesys/file.h"
+#include "threads/pte.h"
+#include "threads/mmu.h"
+#include "threads/synch.h"
+
+void validate_buffer(const void *buffer, size_t size);
+
+struct lock filesys_lock;
 
 void syscall_entry (void);
 void syscall_handler (struct intr_frame *);
@@ -37,6 +45,7 @@ syscall_init (void) {
 	 * mode stack. Therefore, we masked the FLAG_FL. */
 	write_msr(MSR_SYSCALL_MASK,
 			FLAG_IF | FLAG_TF | FLAG_DF | FLAG_IOPL | FLAG_AC | FLAG_NT);
+	lock_init(&filesys_lock);
 }
 
 /* The main system call interface */
@@ -97,17 +106,38 @@ int syscall_exit(int status){
     cur->exit_status = status; // 부모에게 전달할 종료 상태
          // 종료 처리
 	// sema_up(cur->exit_sema);
+
     thread_exit(); 
 }
 
-int syscall_write(int fd,void * buffer, unsigned size){
+int syscall_write(int fd,void * buffer, unsigned size) {
+	struct thread *cur = thread_current();  // 현재 실행중인 쓰레드정보 가져오기
+
+	if (buffer == NULL) syscall_exit(-1);
+	if (size == 0) return 0;
+	validate_buffer(buffer, size);
+	check_user_address(buffer);
+	// printf("[WRITE] fd: %d, buffer: %p, size: %u\n", fd, buffer, size);
 	
-	//fd1 -> stdout ->  FDT -> innode table->dev/tty에 출력
+	// 콘솔 출력
 	if (fd == 1) {  // STDOUT
-        putbuf(buffer, size);
-        return size;
+        putbuf(buffer, size);    // 화면에 출력
+        return size;             // 성공한 바이트 수 리턴
     }
+
+	// 파일 출력
+	if (fd >= 2 && fd < FD_LIMIT) {
+		struct file *file = cur->fd_table[fd];   // 해당 fd에 열려있는 파일 가져오기
+		if (file == NULL) return -1;             // 안 열려이씀? 실패 ㅋ
+		lock_acquire(&filesys_lock);             // 파일 시스템 접근 락 겟또
+		int bytes_written = file_write(file, buffer, size);  // 파일에 쓰기
+		lock_release(&filesys_lock);             // 해제한 락도 락이다.
+
+		return bytes_written;                    // 실제로 쓴 바이트 수 반환
+	}
+	// 잘못된 fd인 경우
 	return -1;
+	
 }
 
 int syscall_wait(tid_t pid){
@@ -167,4 +197,11 @@ int syscall_close(int fd) {
 	cur->fd_table[fd] = NULL;
 
 	return 0;  // 성공~!
+}
+
+void validate_buffer(const void *buffer, size_t size) {
+	if (buffer == NULL) syscall_exit(-1);
+	for (size_t i = 0; i < size; i++) {
+		check_user_address((const char *)buffer + i);
+	}
 }
