@@ -1,0 +1,17 @@
+[33mcommit 3197a4bc5ae92f80bb8913605aa980b952fd5df2[m[33m ([m[1;36mHEAD -> [m[1;32mqueenscode[m[33m)[m
+Author: jay <jay@MacBook-Pro.local>
+Date:   Fri May 23 21:19:55 2025 +0900
+
+    complete syscall_close
+
+[33mcommit d5b2ade8fbd45e9e1c0ab960bd0616b8c02cc002[m
+Author: jay <jay@MacBook-Pro.local>
+Date:   Fri May 23 20:20:45 2025 +0900
+
+    fix syscall.c handling
+
+[33mcommit e0f34dcef01d02cafc5039e5d08c792fe0fc5b36[m[33m ([m[1;34mgrafted[m[33m, [m[1;31morigin/progressing[m[33m, [m[1;32mprogressing[m[33m)[m
+Author: Fharena <99yoonjoo@gmail.com>
+Date:   Fri May 23 16:21:11 2025 +0900
+
+    진행중
