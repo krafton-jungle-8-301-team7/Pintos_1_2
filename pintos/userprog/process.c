@@ -104,8 +104,9 @@ process_fork (const char *name, struct intr_frame *if_ UNUSED) {
 	
 
 	struct thread *child = get_child_process(pid);
-	// 세마 다운, 자식쪽에서 준비끝나면 sema up 예정
 
+	// 세마 다운, 자식쪽에서 준비끝나면 sema up 예정
+	printf("sema_down으로 부모가 자식 기다리는 중, child_tid: %d\n", pid);
     sema_down(&child->fork_sema);
 
 	return child->exit_status == TID_ERROR ? TID_ERROR:pid;
@@ -205,7 +206,7 @@ __do_fork (void *aux) {
 	// process_init ();//프로세스 초기화
 
 
-
+	printf("sema_up, 자식(%s)이 fork 완료 알리는 부분(__do_fork)", current->name);
     sema_up(&current->fork_sema); //  unblock 해주고.
 
 	/* Finally, switch to the newly created process. */
@@ -221,6 +222,7 @@ error:
  * Returns -1 on fail. */
 int
 process_exec (void *f_name) {
+	printf("process_exec: entered with cmd_line = %s\n", (char *) f_name);
 	char *cmd_line = f_name;
 	bool success;
 
@@ -250,11 +252,13 @@ process_exec (void *f_name) {
 	argv[argc] = NULL; // 유닉스같은데선 문자열 인자(argv) 끝났다는걸 알리기 위해 NULL 넣어줌
 
 	/* And then load the binary */
-	printf("file_name:%s : %X\n",file_name,file_name);
-	success = load (file_name, &_if);
-	printf("file_name:%s : %X",file_name,file_name);
-	if (!success){
-		palloc_free_page (file_name);
+	printf("load 진입 시도: %s (%p)\n", file_name, file_name);
+	success = load(file_name, &_if);
+	if (success) {
+		printf("load 성공: %s (%p)\n", file_name, file_name);
+	} else {
+		printf("load 실패: %s (%p)\n", file_name, file_name);
+		palloc_free_page(file_name);
 		return -1;
 	}
 
@@ -279,6 +283,8 @@ process_exec (void *f_name) {
  * does nothing. */
 int
 process_wait (tid_t child_tid UNUSED) {
+	printf("🧍‍♂️ process_wait: called with child_tid = %d\n", child_tid);
+
 	// for(int i=0;i<400000000;i++){
 		
 	// }
@@ -288,6 +294,7 @@ process_wait (tid_t child_tid UNUSED) {
 
 	 
 	struct thread *child_thread = get_child_process(child_tid);
+	printf("🧍‍♂️ child_thread ptr: %p\n", child_thread);
 	if(!child_thread || child_thread->is_waited)return -1;
 	child_thread->is_waited = true;
 	sema_down(&child_thread->wait_sema);//자식의 exit 시그널 기다리는중.
@@ -302,6 +309,8 @@ process_wait (tid_t child_tid UNUSED) {
 void
 process_exit (void) {
 	struct thread *curr = thread_current ();
+	printf("⚰️ process_exit: tid %d, name %s, exit_status = %d\n",
+       curr->tid, curr->name, curr->exit_status);
 	/* TODO: Your code goes here.
 	 * TODO: Implement process termination message (see
 	 * TODO: project2/process_termination.html).
@@ -418,6 +427,7 @@ static bool load_segment (struct file *file, off_t ofs, uint8_t *upage,
  * Returns true if successful, false otherwise. */
 static bool
 load (const char *file_name, struct intr_frame *if_) {
+	
 	struct thread *t = thread_current ();
 	struct ELF ehdr;
 	struct file *file = NULL;
