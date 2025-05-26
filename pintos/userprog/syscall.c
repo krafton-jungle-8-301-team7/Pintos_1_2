@@ -73,7 +73,11 @@ syscall_handler (struct intr_frame *f UNUSED) {
 		f->R.rax = syscall_wait((tid_t) arg0);
 		break;
 		case SYS_EXEC:
-		if(exec(arg0) ==-1 )syscall_exit(-1) ;
+		//if(exec(arg0) ==-1 )syscall_exit(-1) ;
+		f->R.rax = exec((const char*)f->R.rdi);	// TID 저장
+		if ((int)f->R.rax == -1) {
+			syscall_exit(-1);
+		}
 		break;
 	}
 	// printf ("system call!\n");
@@ -111,6 +115,7 @@ int syscall_wait(tid_t pid){
 
 int exec(const char *cmd_line)
 {
+	printf("🧨 syscall_exec 진입, cmd_line = %s\n", cmd_line);
 	check_user_address(cmd_line); 
 
 	char *cmd_line_copy;
@@ -118,6 +123,14 @@ int exec(const char *cmd_line)
 	if (cmd_line_copy == NULL)
 		return -1;						  
 	strlcpy(cmd_line_copy, cmd_line, PGSIZE); 
+
+	printf("exec: starting for %s\n", cmd_line);
+	tid_t tid = process_create_initd(cmd_line_copy);
+	printf("exec: created thread tid = %d\n", tid);
+
+	palloc_free_page(cmd_line_copy);
+
+	return (tid == TID_ERROR) ? -1 : tid;
 
 	// 스레드의 이름을 변경하지 않고 바로 실행한다.
 	if (process_exec(cmd_line_copy) == -1)
