@@ -136,35 +136,17 @@ int syscall_wait(tid_t pid){
 
 int exec(const char *cmd_line)
 {
-	printf("🧨 syscall_exec 진입, cmd_line = %s\n", cmd_line);
+	printf("🧨 syscall_exec 진입했다!!!!, cmd_line = %s\n", cmd_line);
+	
 	check_user_address(cmd_line); 
 
-	char *cmd_line_copy;
-	cmd_line_copy = palloc_get_page(0);
+	char *cmd_line_copy = palloc_get_page(0);
 	if (cmd_line_copy == NULL)
 		return -1;						  
 	strlcpy(cmd_line_copy, cmd_line, PGSIZE); 
 
 	printf("exec: starting for %s\n", cmd_line);
-	tid_t tid = process_create_initd(cmd_line_copy);
-	printf("exec: created thread tid = %d\n", tid);
 
-	palloc_free_page(cmd_line_copy);
-
-	return (tid == TID_ERROR) ? -1 : tid;
-
-	// 스레드의 이름을 변경하지 않고 바로 실행한다.
 	if (process_exec(cmd_line_copy) == -1)
-		return -1; // 실패 시 status -1로 종료한다.
-	// check_user_address(cmd_line);
-
-    // off_t size = strlen(cmd_line) + 1;
-    // char *cmd_copy = palloc_get_page(PAL_ZERO);
-
-    // if (cmd_copy == NULL)
-    //     return -1;
-
-    // memcpy(cmd_copy, cmd_line, size);
-
-    // return process_exec(cmd_copy);
+		return -1;
 }

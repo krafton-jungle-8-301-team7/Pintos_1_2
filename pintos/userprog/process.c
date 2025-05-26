@@ -95,22 +95,24 @@ process_fork (const char *name, struct intr_frame *if_ UNUSED) {
 	struct thread *parent = thread_current(); // 지금 스레드는 부모
 	// parent->user_if = *if_; // 스레드 구조체에 버퍼용 인터럽트프레임 생성후 저장
 
-
-
 	memcpy(&parent->user_if, if_, sizeof(struct intr_frame));
 	tid_t pid = thread_create (name,
 			parent->priority, __do_fork, parent);// 자식의 tid 반환
 	if (pid == TID_ERROR) //  thread_create 실패시 TID_ERROR 반환함.
         return TID_ERROR;
 	
-
 	struct thread *child = get_child_process(pid);
 
 	// 세마 다운, 자식쪽에서 준비끝나면 sema up 예정
 	printf("sema_down으로 부모가 자식 기다리는 중, child_tid: %d\n", pid);
     sema_down(&child->fork_sema);
 
-	return child->exit_status == TID_ERROR ? TID_ERROR:pid;
+	//return child->exit_status == TID_ERROR ? TID_ERROR:pid;
+	if (child->exit_status == TID_ERROR) {
+		printf("❌ 자식이 __do_fork에서 실패함\n");
+		return TID_ERROR;
+	}
+	return pid;
 }
 
 #ifndef VM
@@ -176,17 +178,21 @@ __do_fork (void *aux) {
 
 	/* 2. Duplicate PT */
 	current->pml4 = pml4_create();
-	if (current->pml4 == NULL)
+	if (current->pml4 == NULL) {
+		printf("❌ pml4_create 실패\n");
 		goto error;
-
+	}
 	process_activate (current);
 #ifdef VM
 	supplemental_page_table_init (&current->spt);
 	if (!supplemental_page_table_copy (&current->spt, &parent->spt))
 		goto error;
 #else
-	if (!pml4_for_each (parent->pml4, duplicate_pte, parent))
+	if (!pml4_for_each (parent->pml4, duplicate_pte, parent)) {
+		printf("❌ pml4_for_each 실패\n");
 		goto error;
+	}
+	printf("✅ pml4_for_each 완료\n");
 #endif
 
 	/* TODO: Your code goes here.
@@ -202,12 +208,16 @@ __do_fork (void *aux) {
 	for (int fd = 0; fd < FD_LIMIT; fd++) {
         if (parent->fd_table[fd] != NULL) {
             current->fd_table[fd] = file_duplicate(parent->fd_table[fd]); //file_duplicate는 file 구조체를 사용함. 스레드에 구조체 만들죠?
+			/* 디버깅❌❌❌❌❌❌❌ */
+			if (current->fd_table[fd] == NULL) {
+            printf("❌ file_duplicate 실패: fd = %d\n", fd);
+            goto error;
         }
     }
 	// process_init ();//프로세스 초기화
 
 
-	printf("sema_up, 자식(%s)이 fork 완료 알리는 부분(__do_fork)", current->name);
+	printf("sema_up, 자식(%s)이 fork 완료 알리는 부분(__do_fork)\n", current->name);
     sema_up(&current->fork_sema); //  unblock 해주고.
 
 	/* Finally, switch to the newly created process. */
@@ -217,6 +227,7 @@ error:
 	current->exit_status = TID_ERROR;
 	sema_up(&current->fork_sema);
 	syscall_exit(TID_ERROR); //  현재 프로세스(자식)의 종료상태 설정.
+}
 }
 
 /* Switch the current execution context to the f_name.
