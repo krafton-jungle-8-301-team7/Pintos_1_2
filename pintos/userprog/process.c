@@ -775,7 +775,6 @@ void argument_passing(char**argv,int argc,struct intr_frame *if_){
 	rsp-=sizeof(void *);
 	memset(rsp, 0, sizeof(char*)); 
 	if_->rsp = rsp;
-	
 }
 
 

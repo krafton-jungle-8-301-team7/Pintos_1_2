@@ -1,0 +1,1 @@
+source /workspaces/Pintos_1_2/pintos/activate
