@@ -67,9 +67,10 @@ process_create_initd (const char *file_name) {
 
 	/* Create a new thread to execute FILE_NAME. */
 	tid = thread_create (real_name, PRI_DEFAULT, initd, fn_copy);
-	if (tid == TID_ERROR)
-		palloc_free_page (fn_copy);
-	palloc_free_page(fn_copy2);
+	if (tid == TID_ERROR) {
+		printf("❌ thread_create failed for %s\n", real_name);
+		palloc_free_page (fn_copy);  // 실패한 경우에만 해제
+	}
 	return tid;
 }
 

@@ -74,6 +74,8 @@ syscall_handler (struct intr_frame *f UNUSED) {
 		break;
 		case SYS_EXEC:
 		//if(exec(arg0) ==-1 )syscall_exit(-1) ;
+		printf("🧐 syscall_handler: arg0 (cmd_line) = %p\n", (char *)arg0);
+    	printf("🧐 pml4_get_page = %p\n", pml4_get_page(thread_current()->pml4, (void *)arg0));
 		f->R.rax = exec((const char*)f->R.rdi);	// TID 저장
 		if ((int)f->R.rax == -1) {
 			syscall_exit(-1);
@@ -84,8 +86,27 @@ syscall_handler (struct intr_frame *f UNUSED) {
 	// thread_exit ();
 }
 void check_user_address(const void *uaddr) {//user memory access
-    if (uaddr == NULL || !is_user_vaddr(uaddr) || pml4_get_page(thread_current()->pml4, uaddr) == NULL) // NULL 넘겼는지 || 유저영역인지 || 일부만 유효? 시작 끝이 페이지 테이블에 매핑 되어있는지 
-        syscall_exit(-1); // 잘못된 주소면 프로세스 종료
+    /* if (uaddr == NULL || !is_user_vaddr(uaddr) || pml4_get_page(thread_current()->pml4, uaddr) == NULL) // NULL 넘겼는지 || 유저영역인지 || 일부만 유효? 시작 끝이 페이지 테이블에 매핑 되어있는지 
+        syscall_exit(-1); // 잘못된 주소면 프로세스 종료 */
+	struct thread *cur = thread_current();
+
+    if (uaddr == NULL) {
+        printf("❌ check_user_address: uaddr == NULL\n");
+        syscall_exit(-1);
+    }
+
+    if (!is_user_vaddr(uaddr)) {
+        printf("❌ check_user_address: not a user vaddr: %p\n", uaddr);
+        syscall_exit(-1);
+    }
+
+    void *mapped = pml4_get_page(cur->pml4, uaddr);
+    if (mapped == NULL) {
+        printf("❌ check_user_address: address not mapped in pml4: %p\n", uaddr);
+        syscall_exit(-1);
+    }
+
+    printf("✅ check_user_address: passed for %p (mapped = %p)\n", uaddr, mapped);
 }
 
 int syscall_exit(int status){
