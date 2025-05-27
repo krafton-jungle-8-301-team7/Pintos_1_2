@@ -569,8 +569,14 @@ load (const char *file_name, struct intr_frame *if_) {
 	if_->rip = ehdr.e_entry;
 	/* TODO: Your code goes here.
 	 * TODO: Implement argument passing (see project2/argument_passing.html). */
+	
+	/* rox: 현재 실행중인 스레드에서 실행중인 file을 running_file에 저장
+		그리고 해당 file을 deny_write 시킨다. */
+	thread_current()->running_file = file;
+	file_deny_write(file);
 
 	success = true;
+
 done:
 	/* We arrive here whether the load is successful or not. */
 	file_close (file);

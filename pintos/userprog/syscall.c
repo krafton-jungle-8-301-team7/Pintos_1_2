@@ -118,6 +118,14 @@ int syscall_write(int fd,void * buffer, unsigned size){
 	if (size == 0) return 0;
 	struct thread *cur = thread_current();
 	validate_buffer(buffer, size);
+
+	struct file *target_file = cur->fd_table[fd];
+	
+	if (fd >= 2 && target_file != NULL && cur->running_file != NULL &&
+	file_get_inode(target_file) == file_get_inode(cur->running_file)) {
+	return 0;
+}
+
 	//fd1 -> stdout ->  FDT -> innode table->dev/tty에 출력
 	if (fd == 1) {  // STDOUT
 		void *kbuf = palloc_get_page(0);
