@@ -111,6 +111,7 @@ void check_user_address(const void *uaddr) {//user memory access
 
 int syscall_exit(int status){
 	struct thread *cur = thread_current(); //프로세스의 커널 스레드.
+	printf("⚠️ syscall_exit: tid=%d, name=%s, status=%d\n", cur->tid, cur->name, status);/* 🧐🧐🧐🧐🧐*/
     cur->exit_status = status; // 부모에게 전달할 종료 상태
          // 종료 처리
 	// sema_up(cur->exit_sema);

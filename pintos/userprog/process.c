@@ -223,6 +223,8 @@ __do_fork (void *aux) {
 	/* Finally, switch to the newly created process. */
 	if (succ)
 		do_iret (&if_);//유저 모드 진입
+	NOT_REACHED();
+	
 error:
 	current->exit_status = TID_ERROR;
 	sema_up(&current->fork_sema);
@@ -321,8 +323,10 @@ process_wait (tid_t child_tid UNUSED) {
 void
 process_exit (void) {
 	struct thread *curr = thread_current ();
-	printf("⚰️ process_exit: tid %d, name %s, exit_status = %d\n",
-       curr->tid, curr->name, curr->exit_status);
+	printf("💣 process_exit: tid=%d, name=%s, exit_status=%d\n", curr->tid, curr->name, curr->exit_status); /* 🧐🧐🧐🧐🧐*/
+	if (curr->exit_status == TID_ERROR) {
+    printf("💥 이 프로세스는 실패(exit_status == TID_ERROR)로 종료되었습니다\n");
+}
 	/* TODO: Your code goes here.
 	 * TODO: Implement process termination message (see
 	 * TODO: project2/process_termination.html).
