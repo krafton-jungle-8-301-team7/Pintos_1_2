@@ -121,6 +121,7 @@ int syscall_write(int fd,void * buffer, unsigned size){
 
 	struct file *target_file = cur->fd_table[fd];
 	
+	/* rox: write 하려는 파일과, 현재 스레드가 실행 중인 파일이 같은 inode를 참조중인지 비교 */
 	if (fd >= 2 && target_file != NULL && cur->running_file != NULL &&
 	file_get_inode(target_file) == file_get_inode(cur->running_file)) {
 	return 0;
